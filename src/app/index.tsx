@@ -1,61 +1,83 @@
-import * as Device from 'expo-device';
-import { Platform, StyleSheet } from 'react-native';
+import React from 'react';
+import { StyleSheet, View, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-
-import { AnimatedIcon } from '@/components/animated-icon';
-import { HintRow } from '@/components/hint-row';
+import { useRouter } from 'expo-router';
+import { useAuth } from '@/hooks/useAuth';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { WebBadge } from '@/components/web-badge';
 import { BottomTabInset, MaxContentWidth, Spacing } from '@/constants/theme';
 
-function getDevMenuHint() {
-  if (Platform.OS === 'web') {
-    return <ThemedText type="small">use browser devtools</ThemedText>;
-  }
-  if (Device.isDevice) {
+export default function HomeScreen() {
+  const router = useRouter();
+  const { user, profile, isLoading, signOut } = useAuth();
+
+  if (isLoading) {
     return (
-      <ThemedText type="small">
-        shake device or press <ThemedText type="code">m</ThemedText> in terminal
-      </ThemedText>
+      <ThemedView style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#007aff" />
+      </ThemedView>
     );
   }
-  const shortcut = Platform.OS === 'android' ? 'cmd+m (or ctrl+m)' : 'cmd+d';
-  return (
-    <ThemedText type="small">
-      press <ThemedText type="code">{shortcut}</ThemedText>
-    </ThemedText>
-  );
-}
 
-export default function HomeScreen() {
+  if (!user) {
+    return (
+      <ThemedView style={styles.container}>
+        <SafeAreaView style={styles.safeArea}>
+          <View style={styles.heroSection}>
+            <ThemedText type="subtitle" style={styles.title}>
+              Location Sharing
+            </ThemedText>
+            <ThemedText type="small" style={styles.subtitle}>
+              Share live trip location with your contacts seamlessly.
+            </ThemedText>
+          </View>
+
+          <View style={styles.cardContainer}>
+            <ThemedText type="default" style={{ textAlign: 'center', marginBottom: 12 }}>
+              Sign in or create an account to start sharing trips.
+            </ThemedText>
+            <TouchableOpacity
+              style={styles.primaryButton}
+              onPress={() => router.push('/auth')}
+            >
+              <ThemedText style={styles.buttonText}>Get Started / Sign In</ThemedText>
+            </TouchableOpacity>
+          </View>
+        </SafeAreaView>
+      </ThemedView>
+    );
+  }
+
   return (
     <ThemedView style={styles.container}>
       <SafeAreaView style={styles.safeArea}>
-        <ThemedView style={styles.heroSection}>
-          <AnimatedIcon />
-          <ThemedText type="title" style={styles.title}>
-            Welcome to&nbsp;Expo
+        <View style={styles.heroSection}>
+          <ThemedText type="subtitle" style={styles.title}>
+            Welcome back, {profile?.name || user.email?.split('@')[0]}!
           </ThemedText>
+          <ThemedText type="small" style={styles.subtitle}>
+            Logged in as: {user.email}
+          </ThemedText>
+        </View>
+
+        <ThemedView type="backgroundElement" style={styles.cardContainer}>
+          <View style={styles.profileRow}>
+            <ThemedText type="smallBold">User ID:</ThemedText>
+            <ThemedText type="code">{user.id}</ThemedText>
+          </View>
+          <View style={styles.profileRow}>
+            <ThemedText type="smallBold">Display Name:</ThemedText>
+            <ThemedText type="small">{profile?.name || 'Not set'}</ThemedText>
+          </View>
+          <View style={styles.profileRow}>
+            <ThemedText type="smallBold">Auth Provider:</ThemedText>
+            <ThemedText type="small">{user.app_metadata.provider || 'email'}</ThemedText>
+          </View>
+
+          <TouchableOpacity style={styles.signOutButton} onPress={signOut}>
+            <ThemedText style={styles.signOutButtonText}>Sign Out</ThemedText>
+          </TouchableOpacity>
         </ThemedView>
-
-        <ThemedText type="code" style={styles.code}>
-          get started
-        </ThemedText>
-
-        <ThemedView type="backgroundElement" style={styles.stepContainer}>
-          <HintRow
-            title="Try editing"
-            hint={<ThemedText type="code">src/app/index.tsx</ThemedText>}
-          />
-          <HintRow title="Dev tools" hint={getDevMenuHint()} />
-          <HintRow
-            title="Fresh start"
-            hint={<ThemedText type="code">npm run reset-project</ThemedText>}
-          />
-        </ThemedView>
-
-        {Platform.OS === 'web' && <WebBadge />}
       </SafeAreaView>
     </ThemedView>
   );
@@ -67,32 +89,63 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     flexDirection: 'row',
   },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   safeArea: {
     flex: 1,
     paddingHorizontal: Spacing.four,
-    alignItems: 'center',
-    gap: Spacing.three,
+    alignItems: 'stretch',
+    gap: Spacing.four,
     paddingBottom: BottomTabInset + Spacing.three,
     maxWidth: MaxContentWidth,
+    justifyContent: 'center',
   },
   heroSection: {
     alignItems: 'center',
-    justifyContent: 'center',
-    flex: 1,
-    paddingHorizontal: Spacing.four,
-    gap: Spacing.four,
+    gap: Spacing.two,
   },
   title: {
     textAlign: 'center',
   },
-  code: {
-    textTransform: 'uppercase',
+  subtitle: {
+    textAlign: 'center',
+    opacity: 0.7,
   },
-  stepContainer: {
+  cardContainer: {
+    padding: Spacing.four,
+    borderRadius: 16,
     gap: Spacing.three,
-    alignSelf: 'stretch',
-    paddingHorizontal: Spacing.three,
-    paddingVertical: Spacing.four,
-    borderRadius: Spacing.four,
+    backgroundColor: '#1c1c1e',
+  },
+  profileRow: {
+    flexDirection: 'column',
+    gap: 4,
+  },
+  primaryButton: {
+    backgroundColor: '#007aff',
+    paddingVertical: 14,
+    borderRadius: 12,
+    alignItems: 'center',
+  },
+  buttonText: {
+    color: '#ffffff',
+    fontWeight: '600',
+    fontSize: 16,
+  },
+  signOutButton: {
+    backgroundColor: 'rgba(255, 69, 58, 0.15)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 69, 58, 0.3)',
+    paddingVertical: 12,
+    borderRadius: 10,
+    alignItems: 'center',
+    marginTop: Spacing.two,
+  },
+  signOutButtonText: {
+    color: '#ff453a',
+    fontWeight: '600',
   },
 });
