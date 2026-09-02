@@ -18,6 +18,7 @@ export default function RootLayout() {
           <Stack.Screen name="auth" />
           <Stack.Screen name="contacts/index" />
           <Stack.Screen name="contacts/add" />
+          <Stack.Screen name="trip/[id]" />
         </Stack>
       </ThemeProvider>
     </AuthProvider>

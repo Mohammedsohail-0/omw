@@ -12,6 +12,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useAuth } from '@/hooks/useAuth';
 import { getUserContacts, deleteContact, syncUnlinkedContacts } from '@/lib/contactsService';
+import { startTrip } from '@/lib/tripsService';
 import { ContactItem } from '@/types/contact';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
@@ -23,6 +24,7 @@ export default function ContactsScreen() {
   const [contacts, setContacts] = useState<ContactItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [startingContactId, setStartingContactId] = useState<string | null>(null);
 
   const loadContacts = useCallback(async () => {
     if (!user) return;
@@ -49,6 +51,23 @@ export default function ContactsScreen() {
     loadContacts();
   }, [loadContacts]);
 
+  const handleStartTrip = async (contact: ContactItem) => {
+    if (!contact.contact_user_id) {
+      Alert.alert('User Not Registered', `${contact.nickname} has not registered on OMW yet.`);
+      return;
+    }
+
+    setStartingContactId(contact.id);
+    const { data, error } = await startTrip(contact.id);
+    setStartingContactId(null);
+
+    if (error) {
+      Alert.alert('Cannot Start Trip', error.message);
+    } else if (data) {
+      router.push(`/trip/${data.id}` as any);
+    }
+  };
+
   const handleDelete = (contact: ContactItem) => {
     Alert.alert(
       'Delete Contact',
@@ -73,6 +92,7 @@ export default function ContactsScreen() {
 
   const renderContactCard = ({ item }: { item: ContactItem }) => {
     const isOnApp = Boolean(item.contact_user_id);
+    const isStartingThis = startingContactId === item.id;
 
     return (
       <ThemedView type="backgroundElement" style={styles.card}>
@@ -94,12 +114,33 @@ export default function ContactsScreen() {
           </View>
         </View>
 
+        {/* Start Trip Button */}
+        {isOnApp ? (
+          <TouchableOpacity
+            style={styles.startTripButton}
+            onPress={() => handleStartTrip(item)}
+            disabled={isStartingThis}
+          >
+            {isStartingThis ? (
+              <ActivityIndicator color="#ffffff" size="small" />
+            ) : (
+              <ThemedText style={styles.startTripButtonText}>🚀 Start Live Trip</ThemedText>
+            )}
+          </TouchableOpacity>
+        ) : (
+          <View style={styles.disabledTripButton}>
+            <ThemedText style={styles.disabledTripButtonText}>
+              🔒 Start Trip (Unregistered)
+            </ThemedText>
+          </View>
+        )}
+
         <View style={styles.cardActions}>
           <TouchableOpacity
             style={styles.deleteButton}
             onPress={() => handleDelete(item)}
           >
-            <ThemedText style={styles.deleteButtonText}>Remove</ThemedText>
+            <ThemedText style={styles.deleteButtonText}>Remove Contact</ThemedText>
           </TouchableOpacity>
         </View>
       </ThemedView>
@@ -280,6 +321,34 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'flex-end',
     marginTop: 4,
+  },
+  startTripButton: {
+    backgroundColor: '#34c759',
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 10,
+    alignItems: 'center',
+    marginTop: Spacing.one,
+  },
+  startTripButtonText: {
+    color: '#ffffff',
+    fontWeight: '700',
+    fontSize: 14,
+  },
+  disabledTripButton: {
+    backgroundColor: 'rgba(142, 142, 147, 0.12)',
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 10,
+    alignItems: 'center',
+    marginTop: Spacing.one,
+    borderWidth: 1,
+    borderColor: 'rgba(142, 142, 147, 0.2)',
+  },
+  disabledTripButtonText: {
+    color: '#8e8e93',
+    fontWeight: '600',
+    fontSize: 13,
   },
   deleteButton: {
     paddingVertical: 4,

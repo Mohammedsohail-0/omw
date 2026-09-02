@@ -1,8 +1,10 @@
-import React from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { StyleSheet, View, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useAuth } from '@/hooks/useAuth';
+import { getActiveTripForUser } from '@/lib/tripsService';
+import { TripItem } from '@/types/trip';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { BottomTabInset, MaxContentWidth, Spacing } from '@/constants/theme';
@@ -10,6 +12,17 @@ import { BottomTabInset, MaxContentWidth, Spacing } from '@/constants/theme';
 export default function HomeScreen() {
   const router = useRouter();
   const { user, profile, isLoading, signOut } = useAuth();
+  const [activeTrip, setActiveTrip] = useState<TripItem | null>(null);
+
+  const checkActiveTrip = useCallback(async () => {
+    if (!user) return;
+    const { data } = await getActiveTripForUser();
+    setActiveTrip(data);
+  }, [user]);
+
+  useEffect(() => {
+    checkActiveTrip();
+  }, [checkActiveTrip]);
 
   if (isLoading) {
     return (
@@ -59,6 +72,23 @@ export default function HomeScreen() {
             Logged in as: {user.email}
           </ThemedText>
         </View>
+
+        {/* Active Trip Banner */}
+        {activeTrip && (
+          <TouchableOpacity
+            style={styles.activeTripBanner}
+            onPress={() => router.push(`/trip/${activeTrip.id}` as any)}
+          >
+            <View style={styles.bannerDot} />
+            <View style={{ flex: 1 }}>
+              <ThemedText style={styles.bannerTitle}>Active Trip in Progress</ThemedText>
+              <ThemedText style={styles.bannerSubtitle}>
+                Tap to view live trip details with {activeTrip.target_contact?.nickname || 'Contact'}
+              </ThemedText>
+            </View>
+            <ThemedText style={styles.bannerArrow}>→</ThemedText>
+          </TouchableOpacity>
+        )}
 
         <ThemedView type="backgroundElement" style={styles.cardContainer}>
           <View style={styles.profileRow}>
@@ -113,6 +143,37 @@ const styles = StyleSheet.create({
   heroSection: {
     alignItems: 'center',
     gap: Spacing.two,
+  },
+  activeTripBanner: {
+    backgroundColor: 'rgba(52, 199, 89, 0.15)',
+    borderWidth: 1,
+    borderColor: 'rgba(52, 199, 89, 0.4)',
+    padding: Spacing.three,
+    borderRadius: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.three,
+  },
+  bannerDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: '#34c759',
+  },
+  bannerTitle: {
+    color: '#34c759',
+    fontWeight: '700',
+    fontSize: 15,
+  },
+  bannerSubtitle: {
+    fontSize: 12,
+    opacity: 0.8,
+    marginTop: 2,
+  },
+  bannerArrow: {
+    color: '#34c759',
+    fontSize: 18,
+    fontWeight: '700',
   },
   title: {
     textAlign: 'center',
