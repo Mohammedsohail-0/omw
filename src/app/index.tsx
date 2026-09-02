@@ -74,6 +74,13 @@ export default function HomeScreen() {
             <ThemedText type="small">{user.app_metadata.provider || 'email'}</ThemedText>
           </View>
 
+          <TouchableOpacity
+            style={styles.primaryButton}
+            onPress={() => router.push('/contacts' as any)}
+          >
+            <ThemedText style={styles.buttonText}>👥 Manage Contacts & Nicknames</ThemedText>
+          </TouchableOpacity>
+
           <TouchableOpacity style={styles.signOutButton} onPress={signOut}>
             <ThemedText style={styles.signOutButtonText}>Sign Out</ThemedText>
           </TouchableOpacity>
